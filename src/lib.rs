@@ -83,7 +83,10 @@ impl Matrix {
     // Element access
 
     pub fn rows(&self) -> Vec<Vec<f64>> {
-        self.buffer.chunks_exact(self.dimensions.columns).map(|row| row.to_owned()).collect_vec()
+        self.buffer
+            .chunks_exact(self.dimensions.columns)
+            .map(|row| row.to_owned())
+            .collect_vec()
     }
 
     pub fn columns(&self) -> Vec<Vec<f64>> {
@@ -162,31 +165,30 @@ impl Matrix {
     }
 
     pub fn is_upper_triangular(&self) -> bool {
-        assert!(
-            self.is_square(),
-            "Only square matrices can be triangular."
-        );
+        assert!(self.is_square(), "Only square matrices can be triangular.");
 
         let size = self.dimensions.rows;
 
-        self.rows().iter().rev().enumerate().flat_map(|(i,row)| row.iter().skip(size - i)).all(|item| item == &0.0)
+        self.rows()
+            .iter()
+            .rev()
+            .enumerate()
+            .flat_map(|(i, row)| row.iter().skip(size - i))
+            .all(|item| item == &0.0)
     }
 
     pub fn is_lower_triangular(&self) -> bool {
-        assert!(
-            self.is_square(),
-            "Only square matrices can be triangular."
-        );
+        assert!(self.is_square(), "Only square matrices can be triangular.");
 
-        self.rows().iter().enumerate().flat_map(|(i,row)| row.iter().skip(i + 1)).all(|item| item == &0.0)
+        self.rows()
+            .iter()
+            .enumerate()
+            .flat_map(|(i, row)| row.iter().skip(i + 1))
+            .all(|item| item == &0.0)
     }
 
     pub fn is_diagonal(&self) -> bool {
-        assert!(
-            self.is_square(),
-            "Only square matrices can be diagonal."
-        );
-
+        assert!(self.is_square(), "Only square matrices can be diagonal.");
 
         let divisor = self.dimensions.columns + 1;
         self.buffer
@@ -197,6 +199,12 @@ impl Matrix {
 
     pub fn is_identity(&self) -> bool {
         self == &Self::identity(self.dimensions.rows)
+    }
+
+    // Transformations
+
+    pub fn transpose(&self) -> Self {
+        Self::from(self.columns())
     }
 }
 
@@ -212,6 +220,60 @@ impl From<Vec<Vec<f64>>> for Matrix {
         Self {
             buffer: collection.concat(),
             dimensions,
+        }
+    }
+}
+
+impl ops::Mul<f64> for Matrix {
+    type Output = Matrix;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self {
+            buffer: self.buffer.iter().map(|item| item * rhs).collect_vec(),
+            dimensions: self.dimensions,
+        }
+    }
+}
+
+impl ops::Mul<Matrix> for f64 {
+    type Output = Matrix;
+
+    fn mul(self, rhs: Matrix) -> Self::Output {
+        rhs * self
+    }
+}
+
+impl ops::Mul for Matrix {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self::Output {
+        assert!(
+            self.dimensions.columns == other.dimensions.rows,
+            "To multiply matrices, the number of columns of the left matrix should be the same as the number of rows of the right matrix."
+        );
+
+        let (self_rows, mutual_dimention, other_columns) = (
+            self.dimensions.rows,
+            self.dimensions.columns,
+            other.dimensions.columns,
+        );
+
+        let mut result_collection: Vec<f64> = Vec::new();
+
+        let mut result_collection = Vec::with_capacity(self_rows * other_columns);
+
+        for self_i in 0..self_rows {
+            for other_j in 0..other_columns {
+                result_collection.push(dot_product(
+                    self.row(self_i).unwrap(),
+                    other.column(other_j).unwrap(),
+                ));
+            }
+        }
+
+        Self {
+            buffer: result_collection,
+            dimensions: Dimensions::new(self_rows, other_columns),
         }
     }
 }
@@ -247,39 +309,11 @@ fn dot_product(first: Vec<f64>, second: Vec<f64>) -> f64 {
         .sum()
 }
 
-// TODO: Heavy Refactoring Needed
-impl ops::Mul for Matrix {
-    type Output = Self;
+impl ops::Sub for Matrix {
+    type Output = Matrix;
 
-    fn mul(self, other: Self) -> Self::Output {
-        assert!(
-            self.dimensions.columns == other.dimensions.rows,
-            "To multiply matrices, the number of columns of the left matrix should be the same as the number of rows of the right matrix."
-        );
-
-        let (self_rows, mutual_dimention, other_columns) = (
-            self.dimensions.rows,
-            self.dimensions.columns,
-            other.dimensions.columns,
-        );
-
-        let mut result_collection: Vec<f64> = Vec::new();
-
-        let mut result_collection = Vec::with_capacity(self_rows * other_columns);
-
-        for self_i in 0..self_rows {
-            for other_j in 0..other_columns {
-                result_collection.push(dot_product(
-                    self.row(self_i).unwrap(),
-                    other.column(other_j).unwrap(),
-                ));
-            }
-        }
-
-        Self {
-            buffer: result_collection,
-            dimensions: Dimensions::new(self_rows, other_columns),
-        }
+    fn sub(self, other: Self) -> Self::Output {
+        self + (-1.0 * other)
     }
 }
 

@@ -245,3 +245,22 @@ fn test_properties_row_is_row() {
 
     assert!(matrix.is_row());
 }
+
+
+#[test]
+fn test_transpose_controlled_matrices() {
+    let base_collection = vec![
+        vec![1.0, 3.0,],
+        vec![2.0, 4.0,],
+        vec![3.0, 7.0,],
+    ];
+    let matrix: Matrix = Matrix::from(base_collection);
+
+    let result_collection = vec![
+        vec![1.0, 2.0, 3.0],
+        vec![3.0, 4.0, 7.0],
+    ];
+    let expected_result: Matrix = Matrix::from(result_collection);
+
+    assert_eq!(matrix.transpose(), expected_result);
+}
