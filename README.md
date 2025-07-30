@@ -10,7 +10,7 @@ To use the Matrix library, add the following to your Cargo.toml file:
 
 ```toml
 [dependencies]
-matrix = "1.0.0"
+matrix = {git = "https://github.com/xXDevSShXx/matrix.git"}
 ```
 
 Then, import the library in your Rust code:
@@ -34,23 +34,18 @@ The Matrix library provides the following main features:
 - Creating and manipulating matrices
 - Performing matrix operations such as addition, subtraction, multiplication, and transposition
 - Calculating the determinant and inverse of a matrix
-- Solving systems of linear equations
 
 Here's an example of how to use the library:
 
 ```rust
-let mut m = Matrix::new(3, 3);
-m[(0, 0)] = 1;
-m[(0, 1)] = 2;
-m[(0, 2)] = 3;
-m[(1, 0)] = 4;
-m[(1, 1)] = 5;
-m[(1, 2)] = 6;
-m[(2, 0)] = 7;
-m[(2, 1)] = 8;
-m[(2, 2)] = 9;
+let collection = vec![
+    vec![1.0, 3.0, 5.0],
+    vec![2.0, 4.0, 6.0],
+    vec![3.0, 7.0, 11.0],
+];
+let matrix: Matrix = Matrix::from(base_collection);
 
-let determinant = m.determinant();
+let determinant = matrix.determinant();
 println!("Determinant: {}", determinant);
 ```
 
