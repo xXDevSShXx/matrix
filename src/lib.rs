@@ -7,203 +7,284 @@ use std::{iter, ops, vec};
 use itertools::Itertools;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Dimentions{
+pub struct Dimensions {
     pub rows: usize,
-    pub columns: usize
+    pub columns: usize,
 }
 
-impl Dimentions{
-    pub fn new(rows: usize, columns: usize) -> Self{
+impl Dimensions {
+    pub fn new(rows: usize, columns: usize) -> Self {
         assert!(rows > 0, "Rows should be more than 0.");
         assert!(columns > 0, "Columns should be more than 0.");
 
         Self { rows, columns }
     }
 
-    pub fn square(size: usize) -> Self{
+    pub fn square(size: usize) -> Self {
         Self::new(size, size)
     }
 }
 
-impl From<(usize,usize)> for Dimentions {
-    fn from((rows, columns): (usize,usize)) -> Self {
-        Self::new(rows, columns )
+impl From<(usize, usize)> for Dimensions {
+    fn from((rows, columns): (usize, usize)) -> Self {
+        Self::new(rows, columns)
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Matrix {
-    matrix: Vec<Vec<f64>>,
-    pub dimentions: Dimentions
+    buffer: Vec<f64>,
+    pub dimensions: Dimensions,
 }
 
 impl Matrix {
     // Constructors
 
-    pub fn with_value(dimentions: Dimentions, value: f64) -> Self {
-       Self {
-            matrix: Vec::from_iter(iter::repeat_n(iter::repeat_n(value, dimentions.columns).collect(), dimentions.rows)),
-            dimentions
+    pub fn with_value(dimensions: Dimensions, value: f64) -> Self {
+        Self {
+            buffer: Vec::from_iter(iter::repeat_n(value, dimensions.columns * dimensions.rows)),
+            dimensions,
         }
     }
 
-    pub fn zero(dimentions: Dimentions) -> Self {
-        Self::with_value(dimentions, 0.0)
+    pub fn zero(dimensions: Dimensions) -> Self {
+        Self::with_value(dimensions, 0.0)
     }
 
-    pub fn scalar(main_diagonal: Vec<f64>) -> Self{
+    pub fn scalar(main_diagonal: Vec<f64>) -> Self {
         let size = main_diagonal.len();
-        let collection: Vec<Vec<f64>> = (0..size).map(|i| {
-            (0..size).map(|j| if i == j{
-                main_diagonal.get(i).unwrap().clone()
-            }else{ 0.0 }).collect()
-        }).collect();
+        let buffer: Vec<f64> = (0..(size * size))
+            .map(|i| {
+                if i % (size + 1) == 0 {
+                    main_diagonal[i / (size + 1)]
+                } else {
+                    0.0
+                }
+            })
+            .collect();
 
-        Self::from(collection)
+        Self {
+            buffer,
+            dimensions: Dimensions::square(size),
+        }
     }
 
-    pub fn identity(size: usize) -> Self{
-        let collection: Vec<Vec<f64>> = (0..size).map(|i| {
-            (0..size).map(|j| f64::from(i == j)).collect()
-        }).collect();
+    pub fn identity(size: usize) -> Self {
+        let buffer: Vec<f64> = (0..(size * size))
+            .map(|i| f64::from(i % (size + 1) == 0))
+            .collect();
 
-        Self::from(collection)
+        Self {
+            buffer,
+            dimensions: Dimensions::square(size),
+        }
     }
 
     // Element access
 
+    pub fn rows(&self) -> Vec<Vec<f64>> {
+        self.buffer.chunks_exact(self.dimensions.columns).map(|row| row.to_owned()).collect_vec()
+    }
+
+    pub fn columns(&self) -> Vec<Vec<f64>> {
+        (0..self.dimensions.columns)
+            .map(|col_idx| {
+                self.buffer
+                    .iter()
+                    .skip(col_idx)
+                    .step_by(self.dimensions.columns)
+                    .cloned()
+                    .collect()
+            })
+            .collect()
+    }
+
     pub fn get(&self, i: usize, j: usize) -> Option<&f64> {
-        assert!(i > 0 && j > 0, "i and j are natural numbers(i, j > 0).");
-        self.matrix.get(i-1).and_then(|row| row.get(j-1))
+        let index = (i * self.dimensions.columns) + j;
+
+        self.buffer.get(index)
+    }
+
+    pub fn row(&self, n: usize) -> Option<Vec<f64>> {
+        let start_index = n * self.dimensions.columns;
+        self.buffer
+            .get(start_index..(start_index + self.dimensions.columns))
+            .map(|row| row.to_owned())
+    }
+
+    pub fn column(&self, n: usize) -> Option<Vec<f64>> {
+        if n >= self.dimensions.columns {
+            return None;
+        }
+        let offset = n;
+
+        let column = (0..self.dimensions.rows)
+            .map(|row_i| self.buffer[(row_i * self.dimensions.columns) + offset])
+            .collect();
+
+        Some(column)
     }
 
     pub fn main_diagonal(&self) -> Vec<f64> {
-        assert!(self.is_square(), "Main diagonal is a property of square matrices.");
-        
-        self.matrix.iter().enumerate().map(|(i,row)| 
-            *row.get(i).unwrap()
-        ).collect()
+        assert!(
+            self.is_square(),
+            "Main diagonal is a property of square matrices."
+        );
+
+        let divisor = self.dimensions.rows + 1;
+
+        (0..self.dimensions.rows)
+            .map(|n| self.buffer[n * divisor])
+            .collect()
     }
 
     // Properties
 
     pub fn is_same_size(&self, other: &Self) -> bool {
-        self.dimentions == other.dimentions
+        self.dimensions == other.dimensions
     }
 
     pub fn is_column(&self) -> bool {
-        self.dimentions.columns == 1
+        self.dimensions.columns == 1
     }
 
     pub fn is_row(&self) -> bool {
-        self.dimentions.rows == 1
+        self.dimensions.rows == 1
     }
 
-
     pub fn is_square(&self) -> bool {
-        self.dimentions.rows == self.dimentions.columns
+        self.dimensions.rows == self.dimensions.columns
     }
 
     pub fn is_scalar(&self) -> bool {
-        self.is_diagonal() && self.main_diagonal().iter().tuple_windows().all(|(a,b)| a == b)
+        let (a, b) = (self.is_diagonal(), self.main_diagonal().iter().all_equal());
+        a && b
     }
 
     pub fn is_upper_triangular(&self) -> bool {
-        assert!(self.is_square(), "Triangular matrices should also be square matrices.");
+        assert!(
+            self.is_square(),
+            "Only square matrices can be triangular."
+        );
 
-        self.matrix.iter().enumerate()
-            .all(| (i,row)| 
-                    row.iter().enumerate()
-                    .filter(|(j,_)| &i > j)
-                    .all(|(_, item)| item == &0f64))
+        let size = self.dimensions.rows;
+
+        self.rows().iter().rev().enumerate().flat_map(|(i,row)| row.iter().skip(size - i)).all(|item| item == &0.0)
     }
 
     pub fn is_lower_triangular(&self) -> bool {
-        assert!(self.is_square(), "Triangular matrices should also be square matrices.");
+        assert!(
+            self.is_square(),
+            "Only square matrices can be triangular."
+        );
 
-
-        self.matrix.iter().enumerate()
-            .all(| (i,row)| 
-                    row.iter().enumerate()
-                    .filter(|(j,_)| &i < j)
-                    .all(|(_, item)| item == &0f64))
+        self.rows().iter().enumerate().flat_map(|(i,row)| row.iter().skip(i + 1)).all(|item| item == &0.0)
     }
 
     pub fn is_diagonal(&self) -> bool {
-        assert!(self.is_square(), "Diagonal matrices should also be square matrices.");
+        assert!(
+            self.is_square(),
+            "Only square matrices can be diagonal."
+        );
 
-        self.matrix.iter().enumerate()
-            .all(| (i,row)| 
-                    row.iter().enumerate()
-                    .filter(|(j,_)| &i != j)
-                    .all(|(_, item)| item == &0f64))
+
+        let divisor = self.dimensions.columns + 1;
+        self.buffer
+            .iter()
+            .enumerate()
+            .all(|(index, item)| index % divisor == 0 || item == &0.0)
     }
 
-    pub fn is_identity(&self) -> bool{
-        self == &Self::identity(self.dimentions.rows)
+    pub fn is_identity(&self) -> bool {
+        self == &Self::identity(self.dimensions.rows)
     }
 }
 
 impl From<Vec<Vec<f64>>> for Matrix {
     fn from(collection: Vec<Vec<f64>>) -> Self {
-        assert!(!collection.is_empty() && collection.iter().all(|row| !row.is_empty()));
+        assert!(
+            collection.iter().map(|row| row.len()).all_equal(),
+            "Row sizes should be equal."
+        );
 
-        let dimentions = Dimentions::new(collection.len(), collection.first().map_or(0, |row| row.len()));
+        let dimensions = Dimensions::new(collection.len(), collection[0].len());
 
-        Self{
-            matrix: collection,
-            dimentions 
+        Self {
+            buffer: collection.concat(),
+            dimensions,
         }
     }
 }
 
-// TODO: Heavy Refactoring Needed
-impl ops::Add for Matrix{
+impl ops::Add for Matrix {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
-        assert!(self.is_same_size(&other),"To add matrices they should be of the the same dimentions.");
+        assert!(
+            self.is_same_size(&other),
+            "To add matrices they should be of the the same dimensions."
+        );
 
-        let self_collection = (self.matrix).iter();
-        let mut other_collection = (other.matrix).iter();
+        let buffer = self
+            .buffer
+            .iter()
+            .zip(other.buffer.iter())
+            .map(|(self_item, other_item)| self_item + other_item)
+            .collect();
 
-        let result_collection: Vec<Vec<f64>> = self_collection.map(|self_row| {
-            let mut other_row = other_collection.next().unwrap().iter();
-            
-            self_row.iter().map(|self_element| {
-                let other_element = other_row.next().unwrap();
-
-                self_element + other_element
-
-            }).collect()
-        }).collect();
-
-        Self{matrix: result_collection,dimentions: self.dimentions}
+        Self {
+            buffer,
+            dimensions: self.dimensions,
+        }
     }
 }
 
+fn dot_product(first: Vec<f64>, second: Vec<f64>) -> f64 {
+    first
+        .iter()
+        .zip(second.iter())
+        .map(|(first_item, second_item)| first_item * second_item)
+        .sum()
+}
+
 // TODO: Heavy Refactoring Needed
-impl ops::Mul for Matrix{
+impl ops::Mul for Matrix {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self::Output {
-        assert!(self.dimentions.columns == other.dimentions.rows,"To multiply matrices, the number of columns of the left matrix should be the same as the number of rows of the right matrix.");
+        assert!(
+            self.dimensions.columns == other.dimensions.rows,
+            "To multiply matrices, the number of columns of the left matrix should be the same as the number of rows of the right matrix."
+        );
 
-        let self_collection = (self.matrix).iter();
-        let mut other_collection = (other.matrix).iter();
+        let (self_rows, mutual_dimention, other_columns) = (
+            self.dimensions.rows,
+            self.dimensions.columns,
+            other.dimensions.columns,
+        );
 
-        let result_collection = self_collection.map(|self_row| 
-            (1..=other.dimentions.columns).map(|j|
-                self_row.iter().enumerate().map(|(i,self_element)| self_element * other.get(i+1, j).unwrap()).sum()
-            ).collect()
-        ).collect();
+        let mut result_collection: Vec<f64> = Vec::new();
 
-        Self{matrix: result_collection,dimentions: Dimentions::new(self.dimentions.rows, other.dimentions.columns)}
+        let mut result_collection = Vec::with_capacity(self_rows * other_columns);
+
+        for self_i in 0..self_rows {
+            for other_j in 0..other_columns {
+                result_collection.push(dot_product(
+                    self.row(self_i).unwrap(),
+                    other.column(other_j).unwrap(),
+                ));
+            }
+        }
+
+        Self {
+            buffer: result_collection,
+            dimensions: Dimensions::new(self_rows, other_columns),
+        }
     }
 }
 
 impl PartialEq for Matrix {
     fn eq(&self, other: &Self) -> bool {
-        self.matrix == other.matrix && self.is_same_size(other)
+        self.buffer == other.buffer && self.is_same_size(other)
     }
 }
