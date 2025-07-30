@@ -248,7 +248,7 @@ fn test_properties_row_is_row() {
 
 
 #[test]
-fn test_transpose_controlled_matrices() {
+fn test_transpose_controlled_matrix() {
     let base_collection = vec![
         vec![1.0, 3.0,],
         vec![2.0, 4.0,],
@@ -263,4 +263,26 @@ fn test_transpose_controlled_matrices() {
     let expected_result: Matrix = Matrix::from(result_collection);
 
     assert_eq!(matrix.transpose(), expected_result);
+}
+
+#[test]
+fn test_algebraic_operations_controlled_matric() {
+    let base_collection = vec![
+        vec![1.0, 3.0,],
+        vec![2.0, 4.0,],
+        vec![3.0, 7.0,],
+    ];
+    let matrix: Matrix = Matrix::from(base_collection);
+
+    let result_collection = vec![
+        vec![6.0, 18.0,],
+        vec![12.0, 24.0,],
+        vec![18.0, 42.0,],
+    ];
+    let expected_result: Matrix = Matrix::from(result_collection);
+
+    assert_eq!(matrix.clone() * 6.0, expected_result);
+    assert_eq!(6.0 * matrix.clone(), expected_result);
+
+    assert_eq!(expected_result / 6.0, matrix);
 }

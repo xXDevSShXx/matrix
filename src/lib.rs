@@ -278,6 +278,25 @@ impl ops::Mul for Matrix {
     }
 }
 
+fn dot_product(first: Vec<f64>, second: Vec<f64>) -> f64 {
+    first
+        .iter()
+        .zip(second.iter())
+        .map(|(first_item, second_item)| first_item * second_item)
+        .sum()
+}
+
+impl ops::Div<f64> for Matrix {
+    type Output = Matrix;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        Self {
+            buffer: self.buffer.iter().map(|item| item / rhs).collect_vec(),
+            dimensions: self.dimensions,
+        }
+    }
+}
+
 impl ops::Add for Matrix {
     type Output = Self;
 
@@ -299,14 +318,6 @@ impl ops::Add for Matrix {
             dimensions: self.dimensions,
         }
     }
-}
-
-fn dot_product(first: Vec<f64>, second: Vec<f64>) -> f64 {
-    first
-        .iter()
-        .zip(second.iter())
-        .map(|(first_item, second_item)| first_item * second_item)
-        .sum()
 }
 
 impl ops::Sub for Matrix {
