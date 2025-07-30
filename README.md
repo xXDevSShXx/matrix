@@ -1,7 +1,5 @@
 # Matrix
 
-[![Commit Count](https://img.shields.io/github/commit-count/xXDevSShXx/matrix)](https://github.com/xXDevSShXx/matrix)
-
 A Rust library for working with matrices and linear algebra operations.
 
 ## Installation
