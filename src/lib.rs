@@ -9,21 +9,21 @@ use itertools::{Itertools, Product};
 #[derive(Debug, Clone, Copy)]
 pub enum Dimensions {
     Square(usize),
-    Rectangle{ rows: usize, columns: usize }
+    Rectangle { rows: usize, columns: usize },
 }
 
 impl Dimensions {
     pub fn rows(&self) -> usize {
         *(match self {
-            Dimensions::Rectangle{ rows, .. } => rows,
-            Dimensions::Square(len) => len
+            Dimensions::Rectangle { rows, .. } => rows,
+            Dimensions::Square(len) => len,
         })
     }
-    
+
     pub fn columns(&self) -> usize {
         *(match self {
-            Dimensions::Rectangle{ columns, .. } => columns,
-            Dimensions::Square(len) => len
+            Dimensions::Rectangle { columns, .. } => columns,
+            Dimensions::Square(len) => len,
         })
     }
 
@@ -31,10 +31,13 @@ impl Dimensions {
         self.rows() * self.columns()
     }
 
-    pub fn transposed(&self) -> Dimensions{
+    pub fn transposed(&self) -> Dimensions {
         match self {
-            Self::Rectangle { rows, columns } => Self::Rectangle { rows: *columns, columns: *rows },
-            Self::Square(_) => *self
+            Self::Rectangle { rows, columns } => Self::Rectangle {
+                rows: *columns,
+                columns: *rows,
+            },
+            Self::Square(_) => *self,
         }
     }
 }
@@ -55,9 +58,30 @@ impl PartialEq for Dimensions {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Square(self_size), Self::Square(other_size)) => self_size == other_size,
-            (Self::Rectangle { rows: self_rows, columns: self_columns }, Self::Rectangle { rows: other_rows, columns: other_columns }) => self_rows == other_rows && self_columns == other_columns,
-            (Self::Square(self_size), Self::Rectangle { rows: other_rows, columns: other_columns }) => other_rows == other_columns && self_size == other_rows,
-            (Self::Rectangle { rows: self_rows, columns: self_columns }, Self::Square(other_size)) => self_rows == self_columns && other_size == self_rows,
+            (
+                Self::Rectangle {
+                    rows: self_rows,
+                    columns: self_columns,
+                },
+                Self::Rectangle {
+                    rows: other_rows,
+                    columns: other_columns,
+                },
+            ) => self_rows == other_rows && self_columns == other_columns,
+            (
+                Self::Square(self_size),
+                Self::Rectangle {
+                    rows: other_rows,
+                    columns: other_columns,
+                },
+            ) => other_rows == other_columns && self_size == other_rows,
+            (
+                Self::Rectangle {
+                    rows: self_rows,
+                    columns: self_columns,
+                },
+                Self::Square(other_size),
+            ) => self_rows == self_columns && other_size == self_rows,
             _ => false,
         }
     }
@@ -74,7 +98,9 @@ impl Matrix {
 
     pub fn constant(dimensions: Dimensions, value: f64) -> Self {
         Self {
-            buffer: iter::repeat(value).take(dimensions.count()).collect::<Vec<f64>>(),
+            buffer: iter::repeat(value)
+                .take(dimensions.count())
+                .collect::<Vec<f64>>(),
             dimensions,
         }
     }
@@ -87,7 +113,7 @@ impl Matrix {
         let size = main_diagonal.len();
         let mut result: Self = Self::zero(size.into());
 
-        for (index, item) in main_diagonal.iter().enumerate(){
+        for (index, item) in main_diagonal.iter().enumerate() {
             result.set(index, index, *item);
         }
 
@@ -123,7 +149,7 @@ impl Matrix {
     }
 
     pub fn get(&self, i: usize, j: usize) -> Option<&f64> {
-        if (i >= self.dimensions.rows() || j >= self.dimensions.columns()){
+        if (i >= self.dimensions.rows() || j >= self.dimensions.columns()) {
             return None;
         }
 
@@ -158,7 +184,7 @@ impl Matrix {
             .collect_vec()
     }
 
-        pub fn secondary_diagonal(&self) -> Vec<&f64> {
+    pub fn secondary_diagonal(&self) -> Vec<&f64> {
         assert!(
             self.is_square(),
             "Secondary diagonal is a property of square matrices."
@@ -169,22 +195,47 @@ impl Matrix {
             .map(|index| self.get(index, last_index - index).unwrap())
             .collect_vec()
     }
-    
-        pub fn determinant_unoptimized(&self) -> f64 {
-            assert!(self.is_square(), "Determinant is only defined for square matrices.");    
-            match self.dimensions.rows() {
-                0 => 0.0,
-                1 => *self.get(0, 0).unwrap(),
-                2 => self.main_diagonal().iter().fold(1f64, |value ,&item| value * item) - self.secondary_diagonal().iter().fold(1f64, |value ,&item| value * item) ,
-                dimensions => {
-                    let r1: Vec<f64> = self.row(0).unwrap();
-                    r1.iter().enumerate().map(|(index, value)| {
-                            let remaining_matrix = Matrix::from_buffer(self.buffer.iter().enumerate().skip(dimensions).filter(|(i, _)| *i % dimensions != index).map(|(_, item)| item.to_owned()).collect(), Dimensions::Square(dimensions - 1));
-                            value * remaining_matrix.determinant_unoptimized() * if index % 2 == 0 { 1.0 } else { -1.0 }
-                    }).sum()
-                }
+
+    pub fn determinant_unoptimized(&self) -> f64 {
+        assert!(
+            self.is_square(),
+            "Determinant is only defined for square matrices."
+        );
+        match self.dimensions.rows() {
+            0 => 0.0,
+            1 => *self.get(0, 0).unwrap(),
+            2 => {
+                self.main_diagonal()
+                    .iter()
+                    .fold(1f64, |value, &item| value * item)
+                    - self
+                        .secondary_diagonal()
+                        .iter()
+                        .fold(1f64, |value, &item| value * item)
+            }
+            dimensions => {
+                let r1: Vec<f64> = self.row(0).unwrap();
+                r1.iter()
+                    .enumerate()
+                    .map(|(index, value)| {
+                        let remaining_matrix = Matrix::from_buffer(
+                            self.buffer
+                                .iter()
+                                .enumerate()
+                                .skip(dimensions)
+                                .filter(|(i, _)| *i % dimensions != index)
+                                .map(|(_, item)| item.to_owned())
+                                .collect(),
+                            Dimensions::Square(dimensions - 1),
+                        );
+                        value
+                            * remaining_matrix.determinant_unoptimized()
+                            * if index % 2 == 0 { 1.0 } else { -1.0 }
+                    })
+                    .sum()
             }
         }
+    }
 
     // Manipulation
 
@@ -192,7 +243,7 @@ impl Matrix {
         *self = Matrix::from_buffer(self.columns().concat(), self.dimensions.transposed())
     }
 
-    pub fn transposed(&self) -> Self{
+    pub fn transposed(&self) -> Self {
         let mut result = self.clone();
         result.transpose();
 
@@ -200,13 +251,13 @@ impl Matrix {
     }
 
     pub fn set(&mut self, i: usize, j: usize, value: f64) -> bool {
-        if (i >= self.dimensions.rows() || j >= self.dimensions.columns()){
+        if (i >= self.dimensions.rows() || j >= self.dimensions.columns()) {
             return false;
         }
 
         let index = (i * self.dimensions.columns()) + j;
         *(self.buffer.get_mut(index).unwrap()) = value;
-        
+
         true
     }
 
@@ -235,7 +286,7 @@ impl Matrix {
         if !self.is_diagonal() {
             return false;
         }
-        
+
         match self.main_diagonal().iter().all_equal_value() {
             Ok(&value) => *value == 1.0,
             _ => false,
@@ -243,7 +294,7 @@ impl Matrix {
     }
 
     pub fn is_upper_triangular(&self) -> bool {
-        if !self.is_square(){
+        if !self.is_square() {
             return false;
         }
 
@@ -258,7 +309,7 @@ impl Matrix {
     }
 
     pub fn is_lower_triangular(&self) -> bool {
-        if !self.is_square(){
+        if !self.is_square() {
             return false;
         }
 
@@ -270,7 +321,7 @@ impl Matrix {
     }
 
     pub fn is_diagonal(&self) -> bool {
-        if !self.is_square(){
+        if !self.is_square() {
             return false;
         }
 
@@ -293,7 +344,10 @@ impl From<Vec<Vec<f64>>> for Matrix {
             "Row sizes should be equal."
         );
 
-        let dimensions = Dimensions::Rectangle{ rows: collection.len(), columns: collection[0].len() };
+        let dimensions = Dimensions::Rectangle {
+            rows: collection.len(),
+            columns: collection[0].len(),
+        };
 
         Self {
             buffer: collection.concat(),
@@ -310,10 +364,7 @@ impl Matrix {
             "Dimensions don't match the input size."
         );
 
-        Self {
-            buffer,
-            dimensions,
-        }
+        Self { buffer, dimensions }
     }
 }
 
@@ -366,7 +417,10 @@ impl ops::Mul for Matrix {
 
         Self {
             buffer: result_collection,
-            dimensions: Dimensions::Rectangle{ rows: self_rows, columns: other_columns },
+            dimensions: Dimensions::Rectangle {
+                rows: self_rows,
+                columns: other_columns,
+            },
         }
     }
 }
