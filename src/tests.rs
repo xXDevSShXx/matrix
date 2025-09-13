@@ -283,7 +283,7 @@ fn test_determinant5x5() {
     let matrix: Matrix = Matrix::from(base_collection);
     let expected_result = 12435.0;
 
-    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+    assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
 }
 
 #[test]
@@ -297,7 +297,7 @@ fn test_determinant4x4() {
     let matrix: Matrix = Matrix::from(base_collection);
     let expected_result = 257.0;
 
-    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+    assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
 }
 
 #[test]
@@ -310,7 +310,7 @@ fn test_determinant3x3() {
     let matrix: Matrix = Matrix::from(base_collection);
     let expected_result = -2.0;
 
-    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+    assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
 }
 
 #[test]
@@ -319,7 +319,7 @@ fn test_determinant2x2() {
     let matrix: Matrix = Matrix::from(base_collection);
     let expected_result = -2.0;
 
-    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+    assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
 }
 
 #[test]
@@ -328,5 +328,5 @@ fn test_determinant1x1() {
     let matrix: Matrix = Matrix::from(base_collection);
     let expected_result = 3.0;
 
-    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+    assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
 }

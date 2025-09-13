@@ -6,13 +6,22 @@ use std::{iter, ops, vec};
 
 use itertools::{Itertools, Product};
 
+/// Represents the dimensions of a matrix, either a square matrix or a rectangular matrix.
+///
+/// # Variants
+/// - `Square(usize)`: Square matrix with the given side length.
+/// - `Rectangle { rows: usize, columns: usize }`: Rectangular matrix with specified rows and columns.
 #[derive(Debug, Clone, Copy)]
 pub enum Dimensions {
     Square(usize),
     Rectangle { rows: usize, columns: usize },
 }
 
+/// A matrix of `f64` values with defined dimensions and internal buffer storage.
+///
+/// Provides construction, element access, manipulation, and common matrix properties and operations.
 impl Dimensions {
+    /// Returns the number of rows in the dimensions.
     pub fn rows(&self) -> usize {
         *(match self {
             Dimensions::Rectangle { rows, .. } => rows,
@@ -20,6 +29,7 @@ impl Dimensions {
         })
     }
 
+    /// Returns the number of columns in the dimensions.
     pub fn columns(&self) -> usize {
         *(match self {
             Dimensions::Rectangle { columns, .. } => columns,
@@ -27,10 +37,14 @@ impl Dimensions {
         })
     }
 
+    /// Returns the total number of elements (rows * columns).
     pub fn count(&self) -> usize {
         self.rows() * self.columns()
     }
 
+    /// Returns a new `Dimensions` which is the transpose of the current dimensions.
+    ///
+    /// The rows and columns are swapped for rectangular matrices.
     pub fn transposed(&self) -> Dimensions {
         match self {
             Self::Rectangle { rows, columns } => Self::Rectangle {
@@ -90,12 +104,23 @@ impl PartialEq for Dimensions {
 #[derive(Debug, Clone)]
 pub struct Matrix {
     buffer: Vec<f64>,
+    /// The dimensions of the matrix.
     pub dimensions: Dimensions,
 }
 
 impl Matrix {
     // Constructors
 
+    /// Creates a new matrix filled with a constant `value` for the specified `dimensions`.
+    ///
+    /// # Arguments
+    /// * `dimensions` - The size specifications of the matrix.
+    /// * `value` - The constant value to fill the matrix with.
+    ///
+    /// # Example
+    /// ```
+    /// let m = Matrix::constant(Dimensions::Square(3), 5.0);
+    /// ```
     pub fn constant(dimensions: Dimensions, value: f64) -> Self {
         Self {
             buffer: iter::repeat(value)
@@ -105,10 +130,21 @@ impl Matrix {
         }
     }
 
+    /// Creates a zero matrix with the given dimensions.
+    ///
+    /// Equivalent to `Matrix::constant(dimensions, 0.0)`.
     pub fn zero(dimensions: Dimensions) -> Self {
         Self::constant(dimensions, 0.0)
     }
 
+    /// Creates a diagonal matrix with specified values on the main diagonal.
+    ///
+    /// The size of the matrix will be equal to the length of `main_diagonal`.
+    ///
+    /// # Example
+    /// ```
+    /// let diag = Matrix::scalar(vec![1.0, 2.0, 3.0]);
+    /// ```
     pub fn scalar(main_diagonal: Vec<f64>) -> Self {
         let size = main_diagonal.len();
         let mut result: Self = Self::zero(size.into());
@@ -120,12 +156,18 @@ impl Matrix {
         result
     }
 
+    /// Creates an identity matrix of the given size.
+    ///
+    /// An identity matrix is a diagonal matrix with ones on the main diagonal.
     pub fn identity(size: usize) -> Self {
         Self::scalar(iter::repeat(1.0).take(size).collect::<Vec<f64>>())
     }
 
     // Element access
 
+    /// Returns the rows of the matrix as a vector of vectors.
+    ///
+    /// Each inner vector represents one row.
     pub fn rows(&self) -> Vec<Vec<f64>> {
         self.buffer
             .chunks_exact(self.dimensions.columns())
@@ -134,6 +176,10 @@ impl Matrix {
     }
 
     // TODO: needs further refactoring in the future
+
+    /// Returns the columns of the matrix as a vector of vectors.
+    ///
+    /// Each inner vector represents one column.
     pub fn columns(&self) -> Vec<Vec<f64>> {
         let columns = self.dimensions.columns();
         (0..columns)
@@ -148,6 +194,9 @@ impl Matrix {
             .collect()
     }
 
+    /// Returns an option containing a reference to the element at row `i` and column `j`.
+    ///
+    /// Returns `None` if indices are out of bounds.
     pub fn get(&self, i: usize, j: usize) -> Option<&f64> {
         if (i >= self.dimensions.rows() || j >= self.dimensions.columns()) {
             return None;
@@ -157,6 +206,9 @@ impl Matrix {
         self.buffer.get(index)
     }
 
+    /// Returns a vector containing all elements of the `n`th row.
+    ///
+    /// Returns `None` if `n` is out of range.
     pub fn row(&self, n: usize) -> Option<Vec<f64>> {
         if n >= self.dimensions.rows() {
             return None;
@@ -165,6 +217,9 @@ impl Matrix {
         self.rows().get(n).map(|item| item.to_owned())
     }
 
+    /// Returns a vector containing all elements of the `n`th column.
+    ///
+    /// Returns `None` if `n` is out of range.
     pub fn column(&self, n: usize) -> Option<Vec<f64>> {
         if n >= self.dimensions.columns() {
             return None;
@@ -173,43 +228,57 @@ impl Matrix {
         self.columns().get(n).map(|item| item.to_owned())
     }
 
-    pub fn main_diagonal(&self) -> Vec<&f64> {
-        assert!(
-            self.is_square(),
-            "Main diagonal is a property of square matrices."
-        );
+    /// Returns a vector of references to the elements on the main diagonal of a square matrix.
+    ///
+    /// Returns `None` if `the matrix is not square.
+    pub fn main_diagonal(&self) -> Option<Vec<&f64>> {
+        if !self.is_square() {
+            return None;
+        }
 
-        (0..self.dimensions.rows())
-            .map(|index| self.get(index, index).unwrap())
-            .collect_vec()
+        Some(
+            (0..self.dimensions.rows())
+                .map(|index| self.get(index, index).unwrap())
+                .collect_vec(),
+        )
     }
 
-    pub fn secondary_diagonal(&self) -> Vec<&f64> {
-        assert!(
-            self.is_square(),
-            "Secondary diagonal is a property of square matrices."
-        );
+    /// Returns a vector of references to the elements on the secondary diagonal of a square matrix.
+    ///
+    /// Returns `None` if `the matrix is not square.
+    pub fn secondary_diagonal(&self) -> Option<Vec<&f64>> {
+        if !self.is_square() {
+            return None;
+        }
 
         let last_index = self.dimensions.rows() - 1;
-        (0..=last_index)
-            .map(|index| self.get(index, last_index - index).unwrap())
-            .collect_vec()
+        Some(
+            (0..=last_index)
+                .map(|index| self.get(index, last_index - index).unwrap())
+                .collect_vec(),
+        )
     }
 
-    pub fn determinant_unoptimized(&self) -> f64 {
-        assert!(
-            self.is_square(),
-            "Determinant is only defined for square matrices."
-        );
-        match self.dimensions.rows() {
+    /// Returns the determinant of the matrix, calculated using an unoptimized algorithm.
+    ///
+    /// Returns `None` if `the matrix is not square.
+    pub fn determinant_unoptimized(&self) -> Option<f64> {
+        // checking for the matrix being square is done here and so any other checks are unnecessary.
+        if !self.is_square() {
+            return None;
+        }
+
+        Some(match self.dimensions.rows() {
             0 => 0.0,
             1 => *self.get(0, 0).unwrap(),
             2 => {
                 self.main_diagonal()
+                    .unwrap()
                     .iter()
                     .fold(1f64, |value, &item| value * item)
                     - self
                         .secondary_diagonal()
+                        .unwrap()
                         .iter()
                         .fold(1f64, |value, &item| value * item)
             }
@@ -229,20 +298,22 @@ impl Matrix {
                             Dimensions::Square(dimensions - 1),
                         );
                         value
-                            * remaining_matrix.determinant_unoptimized()
+                            * remaining_matrix.determinant_unoptimized().unwrap()
                             * if index % 2 == 0 { 1.0 } else { -1.0 }
                     })
                     .sum()
             }
-        }
+        })
     }
 
     // Manipulation
 
+    /// Transposes the matrix in place, swapping rows and columns.
     pub fn transpose(&mut self) {
         *self = Matrix::from_buffer(self.columns().concat(), self.dimensions.transposed())
     }
 
+    /// Returns a new matrix which is the transpose of the current matrix.
     pub fn transposed(&self) -> Self {
         let mut result = self.clone();
         result.transpose();
@@ -250,6 +321,9 @@ impl Matrix {
         result
     }
 
+    /// Sets the value at row `i` and column `j` to `value`.
+    ///
+    /// Returns `true` if the value was updated, or `false` if indices were out of bounds.
     pub fn set(&mut self, i: usize, j: usize, value: f64) -> bool {
         if (i >= self.dimensions.rows() || j >= self.dimensions.columns()) {
             return false;
@@ -263,18 +337,22 @@ impl Matrix {
 
     // Properties
 
+    /// Returns `true` if this matrix has exactly the same dimensions as another.
     pub fn is_same_size(&self, other: &Self) -> bool {
         self.dimensions == other.dimensions
     }
 
+    /// Returns `true` if the matrix has only one column.
     pub fn is_column(&self) -> bool {
         self.dimensions.columns() == 1
     }
 
+    /// Returns `true` if the matrix has only one row.
     pub fn is_row(&self) -> bool {
         self.dimensions.rows() == 1
     }
 
+    /// Returns `true` if the matrix is square.
     pub fn is_square(&self) -> bool {
         match self.dimensions {
             Dimensions::Square(_) => true,
@@ -282,17 +360,21 @@ impl Matrix {
         }
     }
 
+    /// Returns `true` if the matrix is a scalar multiple of the identity matrix.
     pub fn is_scalar(&self) -> bool {
+        // checking for the matrix being square is done here,
         if !self.is_diagonal() {
             return false;
         }
 
-        match self.main_diagonal().iter().all_equal_value() {
+        // so the .main_diagonal() function will always return Some.
+        match self.main_diagonal().unwrap().iter().all_equal_value() {
             Ok(&value) => *value == 1.0,
             _ => false,
         }
     }
 
+    /// Returns `true` if the matrix is upper triangular.
     pub fn is_upper_triangular(&self) -> bool {
         if !self.is_square() {
             return false;
@@ -308,6 +390,7 @@ impl Matrix {
             .all(|item| item == &0.0)
     }
 
+    /// Returns `true` if the matrix is lower triangular.
     pub fn is_lower_triangular(&self) -> bool {
         if !self.is_square() {
             return false;
@@ -320,6 +403,7 @@ impl Matrix {
             .all(|item| item == &0.0)
     }
 
+    /// Returns `true` if the matrix is diagonal.
     pub fn is_diagonal(&self) -> bool {
         if !self.is_square() {
             return false;
@@ -332,6 +416,7 @@ impl Matrix {
             .all(|(index, item)| index % divisor == 0 || item == &0.0)
     }
 
+    /// Returns `true` if the matrix is an identity matrix.
     pub fn is_identity(&self) -> bool {
         self == &Self::identity(self.dimensions.rows())
     }
@@ -425,6 +510,17 @@ impl ops::Mul for Matrix {
     }
 }
 
+/// Computes the dot product of two vectors.
+///
+/// # Arguments
+/// * `first` - First vector of f64 values.
+/// * `second` - Second vector of f64 values.
+///
+/// # Returns
+/// Sum of element-wise products.
+///
+/// # Panics
+/// Panics if the vectors are of different lengths.
 fn dot_product(first: Vec<f64>, second: Vec<f64>) -> f64 {
     first
         .iter()
