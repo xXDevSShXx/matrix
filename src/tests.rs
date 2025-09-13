@@ -286,3 +286,68 @@ fn test_algebraic_operations_controlled_matric() {
 
     assert_eq!(expected_result / 6.0, matrix);
 }
+
+#[test]
+fn test_determinant5x5() {
+    let base_collection = vec![
+        vec![1.0, 3.0, 0.0, 9.0, 7.0],
+        vec![2.0, 4.0, 5.0, 5.0, 2.0],
+        vec![3.0, 7.0, 6.0, 8.0, 1.0],
+        vec![6.0, 5.0, 3.0, 18.0, 8.0],
+        vec![13.0, 23.0, 9.0, 8.0, 6.0],
+    ];
+    let matrix: Matrix = Matrix::from(base_collection);
+    let expected_result = 12435.0;
+
+    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+}
+
+#[test]
+fn test_determinant4x4() {
+    let base_collection = vec![
+        vec![1.0, 3.0, 0.0, 9.0],
+        vec![2.0, 4.0, 5.0, 5.0],
+        vec![3.0, 7.0, 6.0, 8.0],
+        vec![6.0, 5.0, 3.0, 18.0],
+    ];
+    let matrix: Matrix = Matrix::from(base_collection);
+    let expected_result = 257.0;
+
+    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+}
+
+#[test]
+fn test_determinant3x3() {
+    let base_collection = vec![
+        vec![1.0, 3.0, 0.0],
+        vec![2.0, 4.0, 5.0],
+        vec![3.0, 7.0, 6.0],
+    ];
+    let matrix: Matrix = Matrix::from(base_collection);
+    let expected_result = -2.0;
+
+    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+}
+
+#[test]
+fn test_determinant2x2() {
+    let base_collection = vec![
+        vec![1.0, 3.0],
+        vec![2.0, 4.0],
+    ];
+    let matrix: Matrix = Matrix::from(base_collection);
+    let expected_result = -2.0;
+
+    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+}
+
+#[test]
+fn test_determinant1x1() {
+    let base_collection = vec![
+        vec![3.0],
+    ];
+    let matrix: Matrix = Matrix::from(base_collection);
+    let expected_result = 3.0;
+
+    assert_eq!(matrix.determinant_unoptimized(), expected_result);
+}

@@ -141,6 +141,35 @@ impl Matrix {
             .collect()
     }
 
+        pub fn secondry_diagonal(&self) -> Vec<f64> {
+        assert!(
+            self.is_square(),
+            "Secondry diagonal is a property of square matrices."
+        );
+
+        let divisor = self.dimensions.rows - 1;
+
+        (1..=self.dimensions.rows)
+            .map(|n| self.buffer[n * divisor])
+            .collect()
+    }
+    
+        pub fn determinant_unoptimized(&self) -> f64 {
+            assert!(self.is_square(), "Determinant is only defined for square matrices.");    
+            match self.dimensions.rows {
+                0 => 0.0,
+                1 => *self.get(0, 0).unwrap(),
+                2 => self.main_diagonal().iter().product::<f64>() - self.secondry_diagonal().iter().product::<f64>(),
+                dimentions => {
+                    let r1: Vec<f64> = self.row(0).unwrap();
+                    r1.iter().enumerate().map(|(index, value)| {
+                            let remaining_matrix = Matrix::from_buffer(dbg!(self.buffer.iter().enumerate().skip(dimentions).filter(|(i, _)| *i % dimentions != index).map(|(_, item)| item.to_owned()).collect()), Dimensions::square(dimentions - 1));
+                            value * remaining_matrix.determinant_unoptimized() * if index % 2 == 0 { 1.0 } else { -1.0 }
+                    }).sum()
+                }
+            }
+        }
+
     // Properties
 
     pub fn is_same_size(&self, other: &Self) -> bool {
@@ -219,6 +248,21 @@ impl From<Vec<Vec<f64>>> for Matrix {
 
         Self {
             buffer: collection.concat(),
+            dimensions,
+        }
+    }
+}
+
+impl Matrix {
+    fn from_buffer(buffer: Vec<f64>, dimensions: Dimensions) -> Self {
+        assert_eq!(
+            buffer.len(),
+            dimensions.rows * dimensions.columns,
+            "Dimentions don't match the input size."
+        );
+
+        Self {
+            buffer,
             dimensions,
         }
     }
