@@ -43,7 +43,7 @@ let collection = vec![
 ];
 let matrix: Matrix = Matrix::from(base_collection);
 
-let determinant = matrix.determinant();
+let determinant = matrix.determinant_unoptimized();
 println!("Determinant: {}", determinant);
 ```
 
