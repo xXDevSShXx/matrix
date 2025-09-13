@@ -34,7 +34,7 @@ fn test_column_works() {
 
 #[test]
 fn test_addition_set_value_custom_values() {
-    let matrix1: Matrix = Matrix::with_value(Dimensions::square(3), 5.0);
+    let matrix1: Matrix = Matrix::constant(Dimensions::Square(3), 5.0);
 
     let base_collection = vec![
         vec![1.0, 3.0, 5.0],
@@ -55,7 +55,7 @@ fn test_addition_set_value_custom_values() {
 
 #[test]
 fn test_addition_identity_set_value() {
-    let matrix1: Matrix = Matrix::with_value(Dimensions::square(3), 5.0);
+    let matrix1: Matrix = Matrix::constant(Dimensions::Square(3), 5.0);
 
     let matrix2: Matrix = Matrix::identity(3);
 
@@ -262,11 +262,11 @@ fn test_transpose_controlled_matrix() {
     ];
     let expected_result: Matrix = Matrix::from(result_collection);
 
-    assert_eq!(matrix.transpose(), expected_result);
+    assert_eq!(matrix.transposed(), expected_result);
 }
 
 #[test]
-fn test_algebraic_operations_controlled_matric() {
+fn test_algebraic_operations_controlled_matrix() {
     let base_collection = vec![
         vec![1.0, 3.0,],
         vec![2.0, 4.0,],
