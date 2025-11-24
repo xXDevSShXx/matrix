@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::*;
+use crate::{Dimensions, Itertools, Matrix};
 
 #[test]
 fn test_row_works() {
@@ -84,7 +84,7 @@ fn test_multiplication_controlled_matrices() {
     ];
     let expected_result = Matrix::from(expected_collection);
 
-    assert_eq!(matrix1 * matrix2, expected_result)
+    assert_eq!(matrix1 * matrix2, Ok(expected_result))
 }
 
 #[test]

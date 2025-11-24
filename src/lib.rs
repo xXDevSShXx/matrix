@@ -119,6 +119,9 @@ impl Matrix {
     ///
     /// # Example
     /// ```
+    /// use matrix::{Dimensions, Matrix};
+    ///
+    /// 
     /// let m = Matrix::constant(Dimensions::Square(3), 5.0);
     /// ```
     pub fn constant(dimensions: Dimensions, value: f64) -> Self {
@@ -143,6 +146,8 @@ impl Matrix {
     ///
     /// # Example
     /// ```
+    /// use matrix::{Dimensions, Matrix};
+    /// 
     /// let diag = Matrix::scalar(vec![1.0, 2.0, 3.0]);
     /// ```
     pub fn scalar(main_diagonal: Vec<f64>) -> Self {
@@ -473,13 +478,14 @@ impl ops::Mul<Matrix> for f64 {
 }
 
 impl ops::Mul for Matrix {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn mul(self, other: Self) -> Self::Output {
-        assert!(
-            self.dimensions.columns() == other.dimensions.rows(),
-            "To multiply matrices, the number of columns of the left matrix should be the same as the number of rows of the right matrix."
-        );
+        if self.dimensions.columns() != other.dimensions.rows() {
+            return Err(
+                "To multiply matrices, the number of columns of the left matrix should be the same as the number of rows of the right matrix.".to_string()
+            );
+        }
 
         let (self_rows, mutual_dimension, other_columns) = (
             self.dimensions.rows(),
@@ -500,13 +506,13 @@ impl ops::Mul for Matrix {
             }
         }
 
-        Self {
+        Ok(Self {
             buffer: result_collection,
             dimensions: Dimensions::Rectangle {
                 rows: self_rows,
                 columns: other_columns,
             },
-        }
+        })
     }
 }
 
