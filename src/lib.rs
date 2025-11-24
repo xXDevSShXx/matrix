@@ -1,4 +1,4 @@
-#![allow(unused, manual_repeat_n, renamed_and_removed_lints)]
+#![allow(unused, renamed_and_removed_lints)]
 
 mod tests;
 
@@ -58,6 +58,9 @@ impl Dimensions {
 
 impl From<(usize, usize)> for Dimensions {
     fn from((rows, columns): (usize, usize)) -> Self {
+        if rows == columns {
+            return Self::Square(rows);
+        }
         Self::Rectangle { rows, columns }
     }
 }
@@ -82,20 +85,6 @@ impl PartialEq for Dimensions {
                     columns: other_columns,
                 },
             ) => self_rows == other_rows && self_columns == other_columns,
-            (
-                Self::Square(self_size),
-                Self::Rectangle {
-                    rows: other_rows,
-                    columns: other_columns,
-                },
-            ) => other_rows == other_columns && self_size == other_rows,
-            (
-                Self::Rectangle {
-                    rows: self_rows,
-                    columns: self_columns,
-                },
-                Self::Square(other_size),
-            ) => self_rows == self_columns && other_size == self_rows,
             _ => false,
         }
     }
@@ -106,6 +95,12 @@ pub struct Matrix {
     buffer: Vec<f64>,
     /// The dimensions of the matrix.
     pub dimensions: Dimensions,
+}
+
+#[derive(Debug)]
+pub enum ErrorKind {
+    DimensionsIncorrct(String),
+    DividedByZero,
 }
 
 impl Matrix {
@@ -121,7 +116,7 @@ impl Matrix {
     /// ```
     /// use matrix::{Dimensions, Matrix};
     ///
-    /// 
+    ///
     /// let m = Matrix::constant(Dimensions::Square(3), 5.0);
     /// ```
     pub fn constant(dimensions: Dimensions, value: f64) -> Self {
@@ -147,10 +142,10 @@ impl Matrix {
     /// # Example
     /// ```
     /// use matrix::{Dimensions, Matrix};
-    /// 
-    /// let diag = Matrix::scalar(vec![1.0, 2.0, 3.0]);
+    ///
+    /// let diag = Matrix::diagonal(vec![1.0, 2.0, 3.0]);
     /// ```
-    pub fn scalar(main_diagonal: Vec<f64>) -> Self {
+    pub fn diagonal(main_diagonal: Vec<f64>) -> Self {
         let size = main_diagonal.len();
         let mut result: Self = Self::zero(size.into());
 
@@ -161,11 +156,32 @@ impl Matrix {
         result
     }
 
-    /// Creates an identity matrix of the given size.
+    /// Creates an scalar matrix of the given size and value.
     ///
-    /// An identity matrix is a diagonal matrix with ones on the main diagonal.
+    /// An scalar matrix is a diagonal matrix with constant values on the main diagonal.
+    ///
+    /// # Example
+    /// ```
+    /// use matrix::{Dimensions, Matrix};
+    ///
+    /// let scalar = Matrix::scalar(0.5, 3);
+    /// ```
+    pub fn scalar(value: f64, size: usize) -> Self {
+        Self::diagonal(iter::repeat(value).take(size).collect::<Vec<f64>>())
+    }
+
+    /// Creates an identity matrix of the given size and value.
+    ///
+    /// An identity matrix is a scalar matrix with ones on the main diagonal.
+    ///
+    /// # Example
+    /// ```
+    /// use matrix::{Dimensions, Matrix};
+    ///
+    /// let i3 = Matrix::identity(3);
+    /// ```
     pub fn identity(size: usize) -> Self {
-        Self::scalar(iter::repeat(1.0).take(size).collect::<Vec<f64>>())
+        Self::diagonal(iter::repeat(1.0).take(size).collect::<Vec<f64>>())
     }
 
     // Element access
@@ -301,7 +317,9 @@ impl Matrix {
                                 .map(|(_, item)| item.to_owned())
                                 .collect(),
                             Dimensions::Square(dimensions - 1),
-                        );
+                        )
+                        .unwrap();
+
                         value
                             * remaining_matrix.determinant_unoptimized().unwrap()
                             * if index % 2 == 0 { 1.0 } else { -1.0 }
@@ -315,7 +333,8 @@ impl Matrix {
 
     /// Transposes the matrix in place, swapping rows and columns.
     pub fn transpose(&mut self) {
-        *self = Matrix::from_buffer(self.columns().concat(), self.dimensions.transposed())
+        // Calculated Dimensions always match the element count.
+        *self = Matrix::from_buffer(self.columns().concat(), self.dimensions.transposed()).unwrap()
     }
 
     /// Returns a new matrix which is the transpose of the current matrix.
@@ -361,7 +380,7 @@ impl Matrix {
     pub fn is_square(&self) -> bool {
         match self.dimensions {
             Dimensions::Square(_) => true,
-            Dimensions::Rectangle { rows, columns } => rows == columns,
+            _ => false,
         }
     }
 
@@ -427,34 +446,33 @@ impl Matrix {
     }
 }
 
-impl From<Vec<Vec<f64>>> for Matrix {
-    fn from(collection: Vec<Vec<f64>>) -> Self {
-        assert!(
-            collection.iter().map(|row| row.len()).all_equal(),
-            "Row sizes should be equal."
-        );
+impl TryFrom<Vec<Vec<f64>>> for Matrix {
+    type Error = ErrorKind;
+    fn try_from(collection: Vec<Vec<f64>>) -> Result<Self, Self::Error> {
+        if !collection.iter().map(|row| row.len()).all_equal() {
+            return Err(ErrorKind::DimensionsIncorrct(
+                "Row sizes should be equal.".to_string(),
+            ));
+        }
 
-        let dimensions = Dimensions::Rectangle {
-            rows: collection.len(),
-            columns: collection[0].len(),
-        };
+        let dimensions = Dimensions::from((collection.len(), collection[0].len()));
 
-        Self {
+        Ok(Self {
             buffer: collection.concat(),
             dimensions,
-        }
+        })
     }
 }
 
 impl Matrix {
-    fn from_buffer(buffer: Vec<f64>, dimensions: Dimensions) -> Self {
-        assert_eq!(
-            buffer.len(),
-            dimensions.count(),
-            "Dimensions don't match the input size."
-        );
+    fn from_buffer(buffer: Vec<f64>, dimensions: Dimensions) -> Result<Self, ErrorKind> {
+        if buffer.len() != dimensions.count() {
+            return Err(ErrorKind::DimensionsIncorrct(
+                "Dimensions don't match the input size.".to_string(),
+            ));
+        }
 
-        Self { buffer, dimensions }
+        Ok(Self { buffer, dimensions })
     }
 }
 
@@ -478,13 +496,13 @@ impl ops::Mul<Matrix> for f64 {
 }
 
 impl ops::Mul for Matrix {
-    type Output = Result<Self, String>;
+    type Output = Option<Self>;
 
     fn mul(self, other: Self) -> Self::Output {
+        // If the number of columns of the first matrix doesn't match the number of rows of the second matrix,
+        // product of the two matrices is undifined.
         if self.dimensions.columns() != other.dimensions.rows() {
-            return Err(
-                "To multiply matrices, the number of columns of the left matrix should be the same as the number of rows of the right matrix.".to_string()
-            );
+            return None;
         }
 
         let (self_rows, mutual_dimension, other_columns) = (
@@ -506,12 +524,9 @@ impl ops::Mul for Matrix {
             }
         }
 
-        Ok(Self {
+        Some(Self {
             buffer: result_collection,
-            dimensions: Dimensions::Rectangle {
-                rows: self_rows,
-                columns: other_columns,
-            },
+            dimensions: Dimensions::from((self_rows, other_columns)),
         })
     }
 }

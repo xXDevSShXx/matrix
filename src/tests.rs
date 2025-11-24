@@ -8,7 +8,7 @@ fn test_row_works() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection.clone());
+    let matrix: Matrix = Matrix::try_from(base_collection.clone()).unwrap();
 
     for (i, row) in base_collection.iter().enumerate() {
         assert_eq!(matrix.row(i).unwrap(), *row);
@@ -22,7 +22,7 @@ fn test_column_works() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection.clone());
+    let matrix: Matrix = Matrix::try_from(base_collection.clone()).unwrap();
 
     for i in 0..base_collection.len() {
         assert_eq!(
@@ -41,14 +41,14 @@ fn test_addition_set_value_custom_values() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix2: Matrix = Matrix::from(base_collection);
+    let matrix2: Matrix = Matrix::try_from(base_collection).unwrap();
 
     let expected_collection = vec![
         vec![6.0, 8.0, 10.0],
         vec![7.0, 9.0, 11.0],
         vec![8.0, 12.0, 16.0],
     ];
-    let expected_result = Matrix::from(expected_collection);
+    let expected_result = Matrix::try_from(expected_collection).unwrap();
 
     assert_eq!(matrix1 + matrix2, expected_result)
 }
@@ -64,7 +64,7 @@ fn test_addition_identity_set_value() {
         vec![5.0, 6.0, 5.0],
         vec![5.0, 5.0, 6.0],
     ];
-    let expected_result = Matrix::from(expected_collection);
+    let expected_result = Matrix::try_from(expected_collection).unwrap();
 
     assert_eq!(matrix1 + matrix2, expected_result)
 }
@@ -72,19 +72,19 @@ fn test_addition_identity_set_value() {
 #[test]
 fn test_multiplication_controlled_matrices() {
     let matrix1_collection = vec![vec![2.0, 1.0], vec![0.0, 3.0], vec![-1.0, 2.0]];
-    let matrix1 = Matrix::from(matrix1_collection);
+    let matrix1 = Matrix::try_from(matrix1_collection).unwrap();
 
     let matrix2_collection = vec![vec![-1.0, 0.0, 1.0], vec![2.0, 3.0, -1.0]];
-    let matrix2 = Matrix::from(matrix2_collection);
+    let matrix2 = Matrix::try_from(matrix2_collection).unwrap();
 
     let expected_collection = vec![
         vec![0.0, 3.0, 1.0],
         vec![6.0, 9.0, -3.0],
         vec![5.0, 6.0, -3.0],
     ];
-    let expected_result = Matrix::from(expected_collection);
+    let expected_result = Matrix::try_from(expected_collection).unwrap();
 
-    assert_eq!(matrix1 * matrix2, Ok(expected_result))
+    assert_eq!(matrix1 * matrix2, Some(expected_result))
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn test_properties_set_value_is_column() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(!matrix.is_column());
 }
@@ -106,7 +106,7 @@ fn test_properties_set_value_is_row() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(!matrix.is_row());
 }
@@ -118,7 +118,7 @@ fn test_properties_set_value_is_diagonal() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(!matrix.is_diagonal());
 }
@@ -130,7 +130,7 @@ fn test_properties_set_value_is_identity() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(!matrix.is_identity());
 }
@@ -142,7 +142,7 @@ fn test_properties_set_value_is_x_triangular() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(!matrix.is_lower_triangular());
     assert!(!matrix.is_upper_triangular());
@@ -155,7 +155,7 @@ fn test_properties_set_value_is_scalar() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(!matrix.is_scalar());
 }
@@ -167,7 +167,7 @@ fn test_properties_set_value_is_square() {
         vec![2.0, 4.0, 6.0],
         vec![3.0, 7.0, 11.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(matrix.is_square());
 }
@@ -225,7 +225,7 @@ fn test_properties_identity_is_square() {
 #[test]
 fn test_properties_column_is_column() {
     let base_collection = vec![vec![1.0], vec![2.0], vec![3.0]];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(matrix.is_column());
 }
@@ -233,7 +233,7 @@ fn test_properties_column_is_column() {
 #[test]
 fn test_properties_column_is_square() {
     let base_collection = vec![vec![1.0], vec![2.0], vec![3.0]];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(!matrix.is_square());
 }
@@ -241,7 +241,7 @@ fn test_properties_column_is_square() {
 #[test]
 fn test_properties_row_is_row() {
     let base_collection = vec![vec![1.0, 3.0, 5.0]];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     assert!(matrix.is_row());
 }
@@ -249,10 +249,10 @@ fn test_properties_row_is_row() {
 #[test]
 fn test_transpose_controlled_matrix() {
     let base_collection = vec![vec![1.0, 3.0], vec![2.0, 4.0], vec![3.0, 7.0]];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     let result_collection = vec![vec![1.0, 2.0, 3.0], vec![3.0, 4.0, 7.0]];
-    let expected_result: Matrix = Matrix::from(result_collection);
+    let expected_result: Matrix = Matrix::try_from(result_collection).unwrap();
 
     assert_eq!(matrix.transposed(), expected_result);
 }
@@ -260,10 +260,10 @@ fn test_transpose_controlled_matrix() {
 #[test]
 fn test_algebraic_operations_controlled_matrix() {
     let base_collection = vec![vec![1.0, 3.0], vec![2.0, 4.0], vec![3.0, 7.0]];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
 
     let result_collection = vec![vec![6.0, 18.0], vec![12.0, 24.0], vec![18.0, 42.0]];
-    let expected_result: Matrix = Matrix::from(result_collection);
+    let expected_result: Matrix = Matrix::try_from(result_collection).unwrap();
 
     assert_eq!(matrix.clone() * 6.0, expected_result);
     assert_eq!(6.0 * matrix.clone(), expected_result);
@@ -280,7 +280,7 @@ fn test_determinant5x5() {
         vec![6.0, 5.0, 3.0, 18.0, 8.0],
         vec![13.0, 23.0, 9.0, 8.0, 6.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
     let expected_result = 12435.0;
 
     assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
@@ -294,7 +294,7 @@ fn test_determinant4x4() {
         vec![3.0, 7.0, 6.0, 8.0],
         vec![6.0, 5.0, 3.0, 18.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
     let expected_result = 257.0;
 
     assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
@@ -307,7 +307,7 @@ fn test_determinant3x3() {
         vec![2.0, 4.0, 5.0],
         vec![3.0, 7.0, 6.0],
     ];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
     let expected_result = -2.0;
 
     assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
@@ -316,7 +316,7 @@ fn test_determinant3x3() {
 #[test]
 fn test_determinant2x2() {
     let base_collection = vec![vec![1.0, 3.0], vec![2.0, 4.0]];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
     let expected_result = -2.0;
 
     assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
@@ -325,7 +325,7 @@ fn test_determinant2x2() {
 #[test]
 fn test_determinant1x1() {
     let base_collection = vec![vec![3.0]];
-    let matrix: Matrix = Matrix::from(base_collection);
+    let matrix: Matrix = Matrix::try_from(base_collection).unwrap();
     let expected_result = 3.0;
 
     assert_eq!(matrix.determinant_unoptimized(), Some(expected_result));
